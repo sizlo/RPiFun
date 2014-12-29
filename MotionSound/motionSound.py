@@ -16,6 +16,7 @@ import random
 # ------------------------------------------------------------------------------
 debugMode = False
 userTriggerMode = False
+secondsToWaitAfterSound = 5
 fileNames = ["cenashort.ogg", "zaynshort.ogg", "watchasay.ogg", "wildcard.ogg"]
 
 # ==============================================================================
@@ -29,13 +30,14 @@ def exitWithMessage(msg):
 # Parse command line arguments
 # ------------------------------------------------------------------------------
 def parseArgs():
-  # We want to use the global debugMode adn userTriggerMode
+  # Use globals
   global debugMode
   global userTriggerMode
+  global secondsToWaitAfterSound
 
   try:
     # Get the list of options provided, and there args
-    opts, args = getopt.getopt(sys.argv[1:], "d",["debug", "userTrigger"])
+    opts, args = getopt.getopt(sys.argv[1:], "dw:",["debug", "userTrigger", "wait="])
   except getopt.GetoptError:
     # Print usage and exit on unknown option
     exitWithMessage("Usage: " + sys.argv[0] + " [-d|--debug] [--userTrigger]")
@@ -46,7 +48,8 @@ def parseArgs():
       debugMode = True
     elif opt in ("--userTrigger"):
       userTriggerMode = True
-
+    elif opt in ("-w", "--wait"):
+      secondsToWaitAfterSound = float(arg)
 
 # ==============================================================================
 # Initialise the program
@@ -102,7 +105,7 @@ def waitForCurrentFile():
   while mixer.music.get_busy():
     # Sleep for a second
     time.sleep(1)
-  logging.info("Music finished")
+  logging.debug("Music finished")
 
 # ==============================================================================
 # Wait for the motion sensor to trigger
@@ -121,14 +124,24 @@ def waitForTrigger():
     while True:
       time.sleep(5)
 
-
-
 # ==============================================================================
 # Program entry / main
 # ------------------------------------------------------------------------------
-init()
+def main():
+  # Use globals
+  global secondsToWaitAfterSound
 
-while True:
-  waitForTrigger()
-  startRandomFile()
-  waitForCurrentFile()
+  init()
+
+  while True:
+    waitForTrigger()
+    startRandomFile()
+    waitForCurrentFile()
+    # Wait to make sure we don't spam sound
+    if secondsToWaitAfterSound > 0:
+      logging.debug("Waiting %f seconds", secondsToWaitAfterSound)
+      time.sleep(secondsToWaitAfterSound)
+
+
+
+main()
