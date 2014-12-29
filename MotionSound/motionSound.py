@@ -9,11 +9,14 @@ import time
 import sys
 import getopt
 import logging
+import random
 
 # ==============================================================================
 # Global variables
 # ------------------------------------------------------------------------------
 debugMode = False
+userTriggerMode = False
+fileNames = ["cenashort.ogg", "zaynshort.ogg", "watchasay.ogg", "wildcard.ogg"]
 
 # ==============================================================================
 # Exit the program with a message
@@ -26,20 +29,24 @@ def exitWithMessage(msg):
 # Parse command line arguments
 # ------------------------------------------------------------------------------
 def parseArgs():
-  # We want to use the global debugMode
+  # We want to use the global debugMode adn userTriggerMode
   global debugMode
+  global userTriggerMode
 
   try:
     # Get the list of options provided, and there args
-    opts, args = getopt.getopt(sys.argv[1:], "d",["debug"])
+    opts, args = getopt.getopt(sys.argv[1:], "d",["debug", "userTrigger"])
   except getopt.GetoptError:
     # Print usage and exit on unknown option
-    exitWithMessage("Usage: " + sys.argv[0] + " [-d|--debug]")
+    exitWithMessage("Usage: " + sys.argv[0] + " [-d|--debug] [--userTrigger]")
 
   # Loop through and react to each option
   for opt, arg in opts:
     if opt in ("-d", "--debug"):
       debugMode = True
+    elif opt in ("--userTrigger"):
+      userTriggerMode = True
+
 
 # ==============================================================================
 # Initialise the program
@@ -79,6 +86,16 @@ def startFile(theFileName):
   mixer.music.play()
 
 # ==============================================================================
+# Start playing a random song
+# ------------------------------------------------------------------------------
+def startRandomFile():
+  # Use the global fileNames list
+  global fileNames
+
+  fileName = random.choice(fileNames)
+  startFile(fileName)
+
+# ==============================================================================
 # Wait for the playing music to finish
 # ------------------------------------------------------------------------------
 def waitForCurrentFile():
@@ -87,10 +104,31 @@ def waitForCurrentFile():
     time.sleep(1)
   logging.info("Music finished")
 
+# ==============================================================================
+# Wait for the motion sensor to trigger
+# ------------------------------------------------------------------------------
+def waitForTrigger():
+  # We want to use the global userTriggerMode
+  global userTriggerMode
+
+  if userTriggerMode:
+    # In user trigger mode wait for user input
+    raw_input("Press enter to trigger")
+    logging.info("Triggered by user input")
+  else:
+    # Wait for the motion sensor GPIO to go high
+    # For now just wait forever
+    while True:
+      time.sleep(5)
+
+
 
 # ==============================================================================
 # Program entry / main
 # ------------------------------------------------------------------------------
 init()
-startFile('cenashort.ogg')
-waitForCurrentFile()
+
+while True:
+  waitForTrigger()
+  startRandomFile()
+  waitForCurrentFile()
