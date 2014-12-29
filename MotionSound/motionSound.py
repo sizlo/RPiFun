@@ -8,6 +8,7 @@ from pygame import mixer
 import time
 import sys
 import getopt
+import logging
 
 # ==============================================================================
 # Global variables
@@ -41,21 +42,31 @@ def parseArgs():
       debugMode = True
 
 # ==============================================================================
-# Log a debug message
-# ------------------------------------------------------------------------------
-def debugLog(msg):
-  # We want to use the global debugMode
-  global debugMode
-
-  if debugMode:
-    print msg
-
-# ==============================================================================
 # Initialise the program
 # ------------------------------------------------------------------------------
 def init():
+  # We want to use the global debugMode
+  global debugMode
+
+  # Parse the command line arguments to the program
   parseArgs()
-  debugLog("Initialising")
+
+  # Initialise root logger
+  lvl = logging.INFO
+  if debugMode:
+    lvl = logging.DEBUG
+  formatString = "%(levelname)-8s %(asctime)s %(funcName)s:%(lineno)s: %(message)s"
+  formatter = logging.Formatter(formatString)
+  logging.basicConfig(level=lvl, format=formatString)
+
+  # Initialise the file logging
+  fileHandle = logging.FileHandler("motionSound.log")
+  fileHandle.setLevel(logging.INFO)
+  fileHandle.setFormatter(formatter)
+  logging.getLogger().addHandler(fileHandle)
+
+  logging.debug("Initialising")
+
   # Initialise the mixer
   mixer.init()
 
@@ -63,7 +74,7 @@ def init():
 # Start playing a sound file
 # ------------------------------------------------------------------------------
 def startFile(theFileName):
-  debugLog("Playing " + theFileName)
+  logging.info("Playing %s", theFileName)
   mixer.music.load(theFileName)
   mixer.music.play()
 
@@ -74,7 +85,7 @@ def waitForCurrentFile():
   while mixer.music.get_busy():
     # Sleep for a second
     time.sleep(1)
-  debugLog("Music finished")
+  logging.info("Music finished")
 
 
 # ==============================================================================
