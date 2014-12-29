@@ -18,6 +18,20 @@ debugMode = False
 userTriggerMode = False
 secondsToWaitAfterSound = 5
 fileNames = ["cenashort.ogg", "zaynshort.ogg", "watchasay.ogg", "wildcard.ogg"]
+usageText = """Usage: """ + sys.argv[0] + """ [-d|--debug] [--userTrigger] [-w|--wait seconds] [-h|--help]
+
+OPTIONS
+\t-d --debug
+\t\tRun in debug mode (show more detailed output)
+
+\t--userTrigger
+\t\tTake user input as the trigger instead of the motion sensor
+
+\t-w --wait seconds
+\t\tThe number of seconds to wait after each sound plays
+
+\t-h --help
+\t\tShow this message"""
 
 # ==============================================================================
 # Exit the program with a message
@@ -34,13 +48,14 @@ def parseArgs():
   global debugMode
   global userTriggerMode
   global secondsToWaitAfterSound
+  global usageText
 
   try:
     # Get the list of options provided, and there args
-    opts, args = getopt.getopt(sys.argv[1:], "dw:",["debug", "userTrigger", "wait="])
+    opts, args = getopt.getopt(sys.argv[1:], "dw:h",["debug", "userTrigger", "wait=", "help"])
   except getopt.GetoptError:
     # Print usage and exit on unknown option
-    exitWithMessage("Usage: " + sys.argv[0] + " [-d|--debug] [--userTrigger]")
+    exitWithMessage(usageText)
 
   # Loop through and react to each option
   for opt, arg in opts:
@@ -50,6 +65,8 @@ def parseArgs():
       userTriggerMode = True
     elif opt in ("-w", "--wait"):
       secondsToWaitAfterSound = float(arg)
+    elif opt in ("-h", "--help"):
+      exitWithMessage(usageText)
 
 # ==============================================================================
 # Initialise the program
