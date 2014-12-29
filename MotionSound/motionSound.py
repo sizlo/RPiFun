@@ -137,6 +137,7 @@ def waitForTrigger():
     logging.info("Triggered by user input")
   else:
     # Wait for the motion sensor GPIO to go high
+    logging.debug("Waiting for motion sensor")
     # For now just wait forever
     while True:
       time.sleep(5)
