@@ -1,0 +1,5 @@
+<h1>Log file for {{ log.name }}</h1>
+<textarea readonly cols="100" rows="25">{{ log.getFileContents }}</textarea>
+
+{% load staticfiles %}
+<script src="{% static 'logs/scrollTextAreas.js' %}"></script>
