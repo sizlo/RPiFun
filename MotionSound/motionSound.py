@@ -124,7 +124,7 @@ def init():
 # Clean up the program
 # ------------------------------------------------------------------------------
 def cleanup():
-  logging.deebug("Cleaning up")
+  logging.debug("Cleaning up")
 
   # Cleanup GPIO
   GPIO.cleanup()
