@@ -173,9 +173,9 @@ def waitForTrigger():
     # Wait for the motion sensor GPIO to go high
     logging.debug("Waiting for motion sensor")
     while True:
-      while GPIO.input(inputChannel):
+      while GPIO.input(inputChannel) == GPIO.HIGH:
         logging.debug("Input channel high")
-      while not GPIO.input(inputChannel)
+      while GPIO.input(inputChannel) == GPIO.LOW:
         logging.debug("Input channel low")
     GPIO.wait_for_edge(inputChannel, GPIO.RISING)
     logging.info("Motion detected")
