@@ -11,12 +11,18 @@ import getopt
 import logging
 import random
 
+try:
+    import RPi.GPIO as GPIO
+except RuntimeError:
+    print("Error importing GPIO. Are you running under sudo?")
+
 # ==============================================================================
 # Global variables
 # ------------------------------------------------------------------------------
 debugMode = False
 userTriggerMode = False
 secondsToWaitAfterSound = 5
+inputChannel = 7
 fileNames = ["cenashort.ogg", "zaynshort.ogg", "watchasay.ogg", "wildcard.ogg"]
 usageText = """Usage: """ + sys.argv[0] + """ [-d|--debug] [--userTrigger] [-w|--wait seconds] [-h|--help]
 
@@ -69,6 +75,20 @@ def parseArgs():
       exitWithMessage(usageText)
 
 # ==============================================================================
+# Setup the GPIO
+# ------------------------------------------------------------------------------
+def setupGPIO():
+  # Use globals
+  global inputChannel
+
+  # Set the pin numbering mode
+  GPIO.setmode(GPIO.BOARD)
+
+  # Setuo the channels
+  GPIO.setup(inputChannel, GPIO.IN)
+  logging.debug("Channel %d set to input", inputChannel)
+
+# ==============================================================================
 # Initialise the program
 # ------------------------------------------------------------------------------
 def init():
@@ -94,8 +114,21 @@ def init():
 
   logging.debug("Initialising")
 
+  # Initialise GPIO
+  setupGPIO()
+
   # Initialise the mixer
   mixer.init()
+
+# ==============================================================================
+# Clean up the program
+# ------------------------------------------------------------------------------
+def cleanup():
+  logging.deebug("Cleaning up")
+
+  # Cleanup GPIO
+  GPIO.cleanup()
+  
 
 # ==============================================================================
 # Start playing a sound file
@@ -128,8 +161,9 @@ def waitForCurrentFile():
 # Wait for the motion sensor to trigger
 # ------------------------------------------------------------------------------
 def waitForTrigger():
-  # We want to use the global userTriggerMode
+  # Use globals
   global userTriggerMode
+  global inputChannel
 
   if userTriggerMode:
     # In user trigger mode wait for user input
@@ -138,9 +172,8 @@ def waitForTrigger():
   else:
     # Wait for the motion sensor GPIO to go high
     logging.debug("Waiting for motion sensor")
-    # For now just wait forever
-    while True:
-      time.sleep(5)
+    GPIO.wait_for_edge(inputChannel, GPIO.RISING)
+    logging.info("Motion detected")
 
 # ==============================================================================
 # Program entry / main
@@ -151,14 +184,18 @@ def main():
 
   init()
 
-  while True:
-    waitForTrigger()
-    startRandomFile()
-    waitForCurrentFile()
-    # Wait to make sure we don't spam sound
-    if secondsToWaitAfterSound > 0:
-      logging.debug("Waiting %f seconds", secondsToWaitAfterSound)
-      time.sleep(secondsToWaitAfterSound)
+  try:
+    while True:
+      waitForTrigger()
+      startRandomFile()
+      waitForCurrentFile()
+      # Wait to make sure we don't spam sound
+      if secondsToWaitAfterSound > 0:
+        logging.debug("Waiting %f seconds", secondsToWaitAfterSound)
+        time.sleep(secondsToWaitAfterSound)
+  except KeyboardInterrupt:
+    logging.debug("Keyboard interrup caught")
+    cleanup()
 
 
 
