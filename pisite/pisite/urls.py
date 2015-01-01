@@ -10,6 +10,10 @@ urlpatterns = patterns('',
     url(r'^logs/', include('logs.urls', namespace="logs")),
     url(r'^admin/', include(admin.site.urls)),
 
+    # Pages within the home app
+    #
     # Home page
     url(r'^$', views.index, name="home"),
+    # Sound upload page
+    url(r'^uploadSound$', views.uploadSound, name="uploadSound")
 )
