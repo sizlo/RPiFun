@@ -152,9 +152,15 @@ def startRandomFile():
 # Wait for the playing music to finish
 # ------------------------------------------------------------------------------
 def waitForCurrentFile():
+  # Ensure we cut off playback after 15s
+  startTime = time.clock()
   while mixer.music.get_busy():
     # Sleep for a second
     time.sleep(1)
+    # If it's been 15s stop playback
+    if time.clock() > startTime + 15:
+      mixer.music.stop()
+      logging.debug("Music cut off after 15s")
   logging.debug("Music finished")
 
 # ==============================================================================
