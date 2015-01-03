@@ -63,7 +63,7 @@ def parseArgs():
 
   try:
     # Get the list of options provided, and there args
-    opts, args = getopt.getopt(sys.argv[1:], "dw:h",["debug", "userTrigger", "wait=", "help"])
+    opts, args = getopt.getopt(sys.argv[1:], "dw:t:h",["debug", "userTrigger", "wait=", "timeout", "help"])
   except getopt.GetoptError:
     # Print usage and exit on unknown option
     exitWithMessage(usageText)
@@ -163,18 +163,16 @@ def waitForCurrentFile():
   global timeout
 
   # Ensure we cut off playback after a timeout
-  startTime = time.clock()
+  startTime = time.time()
   cutoffTime = startTime + timeout
-  logging.debug("start: %d\t cutOff: %d" % (startTime, cutoffTime))
   while mixer.music.get_busy():
     # Sleep for a second
     time.sleep(1)
     # If it's been 15s stop playback
-    currentTime = time.clock()
-    logging.debug("current: %d" % (currentTime))
+    currentTime = time.time()
     if currentTime > cutoffTime:
       mixer.music.stop()
-      logging.debug("Music cut off after " + timeout + "s")
+      logging.debug("Music cut off after %ds" % (timeout))
   logging.debug("Music finished")
 
 # ==============================================================================
