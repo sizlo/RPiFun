@@ -10,6 +10,7 @@ import sys
 import getopt
 import logging
 import random
+import glob
 
 try:
     import RPi.GPIO as GPIO
@@ -23,7 +24,6 @@ debugMode = False
 userTriggerMode = False
 secondsToWaitAfterSound = 5
 inputChannel = 7
-fileNames = ["cenashort.ogg", "zaynshort.ogg", "watchasay.ogg", "wildcard.ogg"]
 usageText = """Usage: """ + sys.argv[0] + """ [-d|--debug] [--userTrigger] [-w|--wait seconds] [-h|--help]
 
 OPTIONS
@@ -142,9 +142,9 @@ def startFile(theFileName):
 # Start playing a random song
 # ------------------------------------------------------------------------------
 def startRandomFile():
-  # Use the global fileNames list
-  global fileNames
-
+  # Build a list of ogg files in this directory
+  fileNames = glob.glob("*.ogg")
+  # Choose a random file from this list
   fileName = random.choice(fileNames)
   startFile(fileName)
 
