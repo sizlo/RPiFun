@@ -172,18 +172,14 @@ def waitForTrigger():
   else:
     # Wait for the motion sensor GPIO to go high
     logging.debug("Waiting for motion sensor")
-    GPIO.wait_for_edge(inputChannel, GPIO.RISING)
+    # Add an event detect for the edge we want
+    GPIO.add_event_detect(inputChannel, GPIO.RISING)
+    # Wait for that event
+    while not GPIO.event_detected(inputChannel):
+      time.sleep(1)
     logging.info("Motion detected")
-
-# ==============================================================================
-# Wait for the input channel to go low
-# ------------------------------------------------------------------------------
-def waitForSensorToGoLow():
-  # Without this the trigger will always fire straight away once one rising
-  # edge has been detected
-  logging.debug("Waiting for the sensor to go low")
-  GPIO.wait_for_edge(inputChannel, GPIO.FALLING)
-  logging.debug("Sensor is low")
+    # Remove the event detect
+    GPIO.remove_event_detect(inputChannel)
 
 # ==============================================================================
 # Program entry / main
@@ -198,7 +194,6 @@ def main():
     while True:
       waitForTrigger()
       startRandomFile()
-      waitForSensorToGoLow()
       waitForCurrentFile()
       # Wait to make sure we don't spam sound
       if secondsToWaitAfterSound > 0:
