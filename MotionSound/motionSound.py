@@ -24,7 +24,8 @@ debugMode = False
 userTriggerMode = False
 secondsToWaitAfterSound = 5
 inputChannel = 7
-usageText = """Usage: """ + sys.argv[0] + """ [-d|--debug] [--userTrigger] [-w|--wait seconds] [-h|--help]
+timeout = 15
+usageText = """Usage: """ + sys.argv[0] + """ [-d|--debug] [--userTrigger] [-w|--wait seconds] [-t|--timeout seconds] [-h|--help]
 
 OPTIONS
 \t-d --debug
@@ -35,6 +36,9 @@ OPTIONS
 
 \t-w --wait seconds
 \t\tThe number of seconds to wait after each sound plays
+
+\t-t --timeout
+\t\tThe number of seconds to cut off a sound after
 
 \t-h --help
 \t\tShow this message"""
@@ -55,6 +59,7 @@ def parseArgs():
   global userTriggerMode
   global secondsToWaitAfterSound
   global usageText
+  global timeout
 
   try:
     # Get the list of options provided, and there args
@@ -71,6 +76,8 @@ def parseArgs():
       userTriggerMode = True
     elif opt in ("-w", "--wait"):
       secondsToWaitAfterSound = float(arg)
+    elif opt in ("-t", "--timeout"):
+      timeout = int(arg)
     elif opt in ("-h", "--help"):
       exitWithMessage(usageText)
 
@@ -152,15 +159,18 @@ def startRandomFile():
 # Wait for the playing music to finish
 # ------------------------------------------------------------------------------
 def waitForCurrentFile():
-  # Ensure we cut off playback after 15s
+  # Use globals
+  global timeout
+
+  # Ensure we cut off playback after a timeout
   startTime = time.clock()
   while mixer.music.get_busy():
     # Sleep for a second
     time.sleep(1)
     # If it's been 15s stop playback
-    if time.clock() > startTime + 15:
+    if time.clock() > startTime + timeout:
       mixer.music.stop()
-      logging.debug("Music cut off after 15s")
+      logging.debug("Music cut off after " + timeout + "s")
   logging.debug("Music finished")
 
 # ==============================================================================
