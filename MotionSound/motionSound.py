@@ -232,7 +232,7 @@ def shouldPlayFile():
     logging.info("Too early to play sound")
     return False
   if currentTime.hour >= latest:
-    logging.info("Too late to playy sound")
+    logging.info("Too late to play sound")
     return False
 
   return True
