@@ -11,6 +11,7 @@ import getopt
 import logging
 import random
 import glob
+import datetime
 
 try:
     import RPi.GPIO as GPIO
@@ -25,7 +26,9 @@ userTriggerMode = False
 secondsToWaitAfterSound = 5
 inputChannel = 7
 timeout = 15
-usageText = """Usage: """ + sys.argv[0] + """ [-d|--debug] [--userTrigger] [-w|--wait seconds] [-t|--timeout seconds] [-h|--help]
+earliest = 10
+latest = 24
+usageText = """Usage: """ + sys.argv[0] + """ [-d|--debug] [--userTrigger] [-w|--wait seconds] [-t|--timeout seconds] [-e|--earliest hour] [-l|--latest hour] [-h|--help]
 
 OPTIONS
 \t-d --debug
@@ -39,6 +42,16 @@ OPTIONS
 
 \t-t --timeout
 \t\tThe number of seconds to cut off a sound after
+
+\t-e --earliest
+\t\tThe earliest hour the program is allowed to play sound in 24hr format
+\t\tE.g """ + sys.argv[0] + """ -e 14
+\t\tWill not allow sounds to be played before 2pm
+
+\t-l --latest
+\t\tThe latest hour the program is allowed to play sound in 24hr format
+\t\tE.g """ + sys.argv[0] + """ -e 14
+\t\tWill not allow sounds to be played after 2pm
 
 \t-h --help
 \t\tShow this message"""
@@ -60,10 +73,12 @@ def parseArgs():
   global secondsToWaitAfterSound
   global usageText
   global timeout
+  global earliest
+  global latest
 
   try:
     # Get the list of options provided, and there args
-    opts, args = getopt.getopt(sys.argv[1:], "dw:t:h",["debug", "userTrigger", "wait=", "timeout", "help"])
+    opts, args = getopt.getopt(sys.argv[1:], "dw:t:e:l:h",["debug", "userTrigger", "wait=", "timeout=", "earliest=", "latest=", "help"])
   except getopt.GetoptError:
     # Print usage and exit on unknown option
     exitWithMessage(usageText)
@@ -78,6 +93,10 @@ def parseArgs():
       secondsToWaitAfterSound = float(arg)
     elif opt in ("-t", "--timeout"):
       timeout = int(arg)
+    elif opt in ("-e", "--earliest"):
+      earliest = int(arg)
+    elif opt in ("-l", "--latest"):
+      latest = int(arg)
     elif opt in ("-h", "--help"):
       exitWithMessage(usageText)
 
@@ -200,6 +219,25 @@ def waitForTrigger():
     GPIO.remove_event_detect(inputChannel)
 
 # ==============================================================================
+# Decide whether we should pla a file or not
+# ------------------------------------------------------------------------------
+def shouldPlayFile():
+  # Use globals
+  global earliest
+  global latest
+
+  # If it's outside the allowed time then don't play
+  currentTime = datetime.datetime.now()
+  if currentTime.hour < earliest:
+    logging.info("Too early to play sound")
+    return False
+  if currentTime.hour >= latest:
+    logging.info("Too late to playy sound")
+    return False
+
+  return True
+
+# ==============================================================================
 # Program entry / main
 # ------------------------------------------------------------------------------
 def main():
@@ -211,12 +249,13 @@ def main():
   try:
     while True:
       waitForTrigger()
-      startRandomFile()
-      waitForCurrentFile()
-      # Wait to make sure we don't spam sound
-      if secondsToWaitAfterSound > 0:
-        logging.debug("Waiting %f seconds", secondsToWaitAfterSound)
-        time.sleep(secondsToWaitAfterSound)
+      if shouldPlayFile():
+        startRandomFile()
+        waitForCurrentFile()
+        # Wait to make sure we don't spam sound
+        if secondsToWaitAfterSound > 0:
+          logging.debug("Waiting %f seconds", secondsToWaitAfterSound)
+          time.sleep(secondsToWaitAfterSound)
   except KeyboardInterrupt:
     logging.debug("Keyboard interrup caught")
     cleanup()
