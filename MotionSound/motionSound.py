@@ -28,7 +28,8 @@ inputChannel = 7
 timeout = 15
 earliest = 10
 latest = 24
-usageText = """Usage: """ + sys.argv[0] + """ [-d|--debug] [--userTrigger] [-w|--wait seconds] [-t|--timeout seconds] [-e|--earliest hour] [-l|--latest hour] [-h|--help]
+percentChance = 20
+usageText = """Usage: """ + sys.argv[0] + """ [-d|--debug] [--userTrigger] [-w|--wait seconds] [-t|--timeout seconds] [-e|--earliest hour] [-l|--latest hour] [-c|--chance percent] [-h|--help]
 
 OPTIONS
 \t-d --debug
@@ -40,18 +41,21 @@ OPTIONS
 \t-w --wait seconds
 \t\tThe number of seconds to wait after each sound plays
 
-\t-t --timeout
+\t-t --timeout seconds
 \t\tThe number of seconds to cut off a sound after
 
-\t-e --earliest
+\t-e --earliest hours
 \t\tThe earliest hour the program is allowed to play sound in 24hr format
 \t\tE.g """ + sys.argv[0] + """ -e 14
 \t\tWill not allow sounds to be played before 2pm
 
-\t-l --latest
+\t-l --latest hourse
 \t\tThe latest hour the program is allowed to play sound in 24hr format
 \t\tE.g """ + sys.argv[0] + """ -e 14
 \t\tWill not allow sounds to be played after 2pm
+
+\t-c --chance percent
+\t\tThe percentage chance that a sound will play when motion is detected
 
 \t-h --help
 \t\tShow this message"""
@@ -75,10 +79,11 @@ def parseArgs():
   global timeout
   global earliest
   global latest
+  global percentChance
 
   try:
     # Get the list of options provided, and there args
-    opts, args = getopt.getopt(sys.argv[1:], "dw:t:e:l:h",["debug", "userTrigger", "wait=", "timeout=", "earliest=", "latest=", "help"])
+    opts, args = getopt.getopt(sys.argv[1:], "dw:t:e:l:c:h",["debug", "userTrigger", "wait=", "timeout=", "earliest=", "latest=", "chance=", "help"])
   except getopt.GetoptError:
     # Print usage and exit on unknown option
     exitWithMessage(usageText)
@@ -97,6 +102,8 @@ def parseArgs():
       earliest = int(arg)
     elif opt in ("-l", "--latest"):
       latest = int(arg)
+    elif opt in ("-c", "--chance"):
+      percentChance = int(arg)
     elif opt in ("-h", "--help"):
       exitWithMessage(usageText)
 
@@ -225,6 +232,7 @@ def shouldPlayFile():
   # Use globals
   global earliest
   global latest
+  global percentChance
 
   # If it's outside the allowed time then don't play
   currentTime = datetime.datetime.now()
@@ -233,6 +241,12 @@ def shouldPlayFile():
     return False
   if currentTime.hour >= latest:
     logging.info("Too late to play sound")
+    return False
+
+  # Only play a sound a certain percentage of the time
+  generatedNum = random.randint(1, 100)
+  if generatedNum > percentChance:
+    logging.debug("Generated %d, must be %d or lower" % (generatedNum, percentChance))
     return False
 
   return True
@@ -252,10 +266,10 @@ def main():
       if shouldPlayFile():
         startRandomFile()
         waitForCurrentFile()
-        # Wait to make sure we don't spam sound
-        if secondsToWaitAfterSound > 0:
-          logging.debug("Waiting %f seconds", secondsToWaitAfterSound)
-          time.sleep(secondsToWaitAfterSound)
+      # Wait to make sure we don't spam sound
+      if secondsToWaitAfterSound > 0:
+        logging.debug("Waiting %f seconds", secondsToWaitAfterSound)
+        time.sleep(secondsToWaitAfterSound)
   except KeyboardInterrupt:
     logging.debug("Keyboard interrup caught")
     cleanup()
