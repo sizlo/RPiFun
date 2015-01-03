@@ -164,11 +164,12 @@ def waitForCurrentFile():
 
   # Ensure we cut off playback after a timeout
   startTime = time.clock()
+  cutoffTime = startTime + timeout
   while mixer.music.get_busy():
     # Sleep for a second
     time.sleep(1)
     # If it's been 15s stop playback
-    if time.clock() > startTime + timeout:
+    if time.clock() > cutoffTime:
       mixer.music.stop()
       logging.debug("Music cut off after " + timeout + "s")
   logging.debug("Music finished")
