@@ -85,7 +85,7 @@ def setupGPIO():
   GPIO.setmode(GPIO.BOARD)
 
   # Setuo the channels
-  GPIO.setup(inputChannel, GPIO.IN)
+  GPIO.setup(inputChannel, GPIO.IN, pull_up_down=GPIO.PUD_DOWN)
   logging.debug("Channel %d set to input", inputChannel)
 
 # ==============================================================================
