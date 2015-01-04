@@ -28,8 +28,11 @@ inputChannel = 7
 timeout = 15
 earliest = 10
 latest = 24
-percentChance = 20
-usageText = """Usage: """ + sys.argv[0] + """ [-d|--debug] [--userTrigger] [-w|--wait seconds] [-t|--timeout seconds] [-e|--earliest hour] [-l|--latest hour] [-c|--chance percent] [-h|--help]
+initialPercentChance = 20
+percentChance = initialPercentChance
+percentChanceIncrement = 5
+maxPercentChance = 100
+usageText = """Usage: """ + sys.argv[0] + """ [-d|--debug] [--userTrigger] [-w|--wait seconds] [-t|--timeout seconds] [-e|--earliest hour] [-l|--latest hour] [-c|--chance percent] [-i|--increment percent] [-m|--maxChance percent] [-h|--help]
 
 OPTIONS
 \t-d --debug
@@ -55,7 +58,13 @@ OPTIONS
 \t\tWill not allow sounds to be played after 2pm
 
 \t-c --chance percent
-\t\tThe percentage chance that a sound will play when motion is detected
+\t\tThe initial percentage chance that a sound will play when motion is detected
+
+\t-i --increment percent
+\t\tThe percentage to increment the chance to play by
+
+\t-m --maxChance percent
+\t\tThe maximum that the chance to play can get to
 
 \t-h --help
 \t\tShow this message"""
@@ -79,7 +88,10 @@ def parseArgs():
   global timeout
   global earliest
   global latest
+  global initialPercentChance
   global percentChance
+  global percentChanceIncrement
+  global maxPercentChance
 
   try:
     # Get the list of options provided, and there args
@@ -103,7 +115,12 @@ def parseArgs():
     elif opt in ("-l", "--latest"):
       latest = int(arg)
     elif opt in ("-c", "--chance"):
-      percentChance = int(arg)
+      initialPercentChance = int(arg)
+      percentChance = initialPercentChance
+    elif opt in ("-i", "--increment"):
+      percentChanceIncrement = int(arg)
+    elif opt in ("-m", "--maxChance"):
+      maxPercentChance = int(arg)
     elif opt in ("-h", "--help"):
       exitWithMessage(usageText)
 
@@ -232,7 +249,10 @@ def shouldPlayFile():
   # Use globals
   global earliest
   global latest
+  global initialPercentChance
   global percentChance
+  global percentChanceIncrement
+  global maxPercentChance
 
   # If it's outside the allowed time then don't play
   currentTime = datetime.datetime.now()
@@ -247,7 +267,14 @@ def shouldPlayFile():
   generatedNum = random.randint(1, 100)
   if generatedNum > percentChance:
     logging.debug("Generated %d, must be %d or lower" % (generatedNum, percentChance))
+    # Increment the chance to play
+    percentChance = percentChance + percentChanceIncrement
+    percentChance = min(percentChance, maxPercentChance)
+    logging.info("Chance to play is now %d%" % (percentChance))
     return False
+
+  # Reset the chance to play since we're going to play now
+  percentChance = initialPercentChance
 
   return True
 
