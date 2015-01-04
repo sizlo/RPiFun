@@ -270,7 +270,7 @@ def shouldPlayFile():
     # Increment the chance to play
     percentChance = percentChance + percentChanceIncrement
     percentChance = min(percentChance, maxPercentChance)
-    logging.info("Chance to play is now %d%" % (percentChance))
+    logging.info("Chance to play is now %d%%" % (percentChance))
     return False
 
   # Reset the chance to play since we're going to play now
