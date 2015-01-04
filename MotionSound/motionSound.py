@@ -95,7 +95,7 @@ def parseArgs():
 
   try:
     # Get the list of options provided, and there args
-    opts, args = getopt.getopt(sys.argv[1:], "dw:t:e:l:c:h",["debug", "userTrigger", "wait=", "timeout=", "earliest=", "latest=", "chance=", "help"])
+    opts, args = getopt.getopt(sys.argv[1:], "dw:t:e:l:c:i:m:h",["debug", "userTrigger", "wait=", "timeout=", "earliest=", "latest=", "chance=", "increment=", "maxChance=", "help"])
   except getopt.GetoptError:
     # Print usage and exit on unknown option
     exitWithMessage(usageText)
