@@ -52,6 +52,7 @@ def uploadSound(request):
                   "-ss", startTime,
                   "-t", duration,
                   "-y",
+                  "-acodec", "libvorbis",
                   "/tmp/" + outputFileName]
         try:
           subprocess.check_output(command)
