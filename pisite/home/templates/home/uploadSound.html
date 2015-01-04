@@ -1,6 +1,6 @@
 <h1>Upload a Sound</h1>
-<p>Sound will be converted to .ogg, only the first 15 seconds will be kept</p>
-<form enctype="multipart/form-data" method="post" action="{% url 'uploadSound' %}">
+<p>Sound will be converted to .ogg</p>
+<form name="uploadForm" enctype="multipart/form-data" action="{% url 'uploadSound' %}" method="post">
   {% csrf_token %}
   {{ form }}
   <input type="submit" value="Submit" />

@@ -10,6 +10,8 @@ from django import forms
 
 class UploadSoundForm(forms.Form):
     sound = forms.FileField()
+    startTime = forms.CharField(label="Start time as HH:MM:SS.mmm", max_length=12, initial="00:00:00.000")
+    duration = forms.CharField(label="Duration as HH:MM:SS.mmm", max_length=12, initial="00:00:15.000")
 # End move
 
 # Create your views here.
@@ -40,12 +42,15 @@ def uploadSound(request):
       # Replace the extention with .ogg
       name, ext = os.path.splitext(outputFileName)
       outputFileName = name + ".ogg"
+      # Get timings
+      startTime = form.cleaned_data['startTime']
+      duration = form.cleaned_data['duration']
       # Call ffmpeg
       if inputFileName != outputFileName:
         command = ["ffmpeg",
                   "-i", "/tmp/" + inputFileName,
-                  "-ss", "00:00:00",
-                  "-t", "00:00:15",
+                  "-ss", startTime,
+                  "-t", duration,
                   "-y",
                   "/tmp/" + outputFileName]
         try:
