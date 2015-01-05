@@ -228,7 +228,7 @@ def startRandomFile():
   fileName = random.choice(fileNames)
 
   # Make sure this sound hasn't played recently
-  if len(fileNames) >= listLength:
+  if len(fileNames) > listLength:
     while (fileName in recentlyPlayedSounds):
       fileName = random.choice(fileNames)
 
