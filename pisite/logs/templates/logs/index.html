@@ -1,7 +1,7 @@
 {% if logList %}
   {% for log in logList %}
     <h1><a href="{% url 'logs:individualLog' log.name %}">{{ log.name }}</a></h1>
-    <textarea readonly cols="100" rows="10">{{ log.getFileContents }}</textarea>
+    <textarea readonly cols="100" rows="10">{{ log.getLastNLines }}</textarea>
   {% endfor %}
 {% else %}
   <p> No logs </p>
