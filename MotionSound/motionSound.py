@@ -220,7 +220,6 @@ def startFile(theFileName):
 def startRandomFile():
   # Use globals
   global recentlyPlayedSounds
-  global listLength
 
   # Build a list of ogg files in this directory
   fileNames = glob.glob("*.ogg")
@@ -228,7 +227,7 @@ def startRandomFile():
   fileName = random.choice(fileNames)
 
   # Make sure this sound hasn't played recently
-  if len(fileNames) > listLength:
+  if len(fileNames) > len(recentlyPlayedSounds):
     while (fileName in recentlyPlayedSounds):
       fileName = random.choice(fileNames)
 
