@@ -2,17 +2,10 @@ from django.shortcuts import render
 from django.http import HttpResponse
 from django.conf import settings
 
+from forms import UploadSoundForm
+
 import os
 import subprocess
-
-# Move this to forms.py
-from django import forms
-
-class UploadSoundForm(forms.Form):
-    sound = forms.FileField()
-    startTime = forms.CharField(label="Start time as HH:MM:SS.mmm", max_length=12, initial="00:00:00.000")
-    duration = forms.CharField(label="Duration as HH:MM:SS.mmm", max_length=12, initial="00:00:15.000")
-# End move
 
 # Create your views here.
 def index(request):
