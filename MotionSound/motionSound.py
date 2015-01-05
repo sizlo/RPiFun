@@ -12,11 +12,20 @@ import logging
 import random
 import glob
 import datetime
+import Queue
 
 try:
     import RPi.GPIO as GPIO
 except RuntimeError:
     print("Error importing GPIO. Are you running under sudo?")
+
+# ==============================================================================
+# Classes
+# ------------------------------------------------------------------------------
+class CheckableQueue(Queue.Queue):
+    def __contains__(self, item):
+        with self.mutex:
+            return item in self.queue
 
 # ==============================================================================
 # Global variables
@@ -32,7 +41,9 @@ initialPercentChance = 20
 percentChance = initialPercentChance
 percentChanceIncrement = 5
 maxPercentChance = 100
-usageText = """Usage: """ + sys.argv[0] + """ [-d|--debug] [--userTrigger] [-w|--wait seconds] [-t|--timeout seconds] [-e|--earliest hour] [-l|--latest hour] [-c|--chance percent] [-i|--increment percent] [-m|--maxChance percent] [-h|--help]
+listLength = 5
+recentlyPlayedSounds = CheckableQueue()
+usageText = """Usage: """ + sys.argv[0] + """ [-d|--debug] [--userTrigger] [-w|--wait seconds] [-t|--timeout seconds] [-e|--earliest hour] [-l|--latest hour] [-c|--chance percent] [-i|--increment percent] [-m|--maxChance percent] [-L|--listLength length] [-h|--help]
 
 OPTIONS
 \t-d --debug
@@ -66,6 +77,9 @@ OPTIONS
 \t-m --maxChance percent
 \t\tThe maximum that the chance to play can get to
 
+\t-L --listLength length
+\t\tThe size of the list of songs that were played recently so shouldn't be played again
+
 \t-h --help
 \t\tShow this message"""
 
@@ -92,10 +106,11 @@ def parseArgs():
   global percentChance
   global percentChanceIncrement
   global maxPercentChance
+  global listLength
 
   try:
     # Get the list of options provided, and there args
-    opts, args = getopt.getopt(sys.argv[1:], "dw:t:e:l:c:i:m:h",["debug", "userTrigger", "wait=", "timeout=", "earliest=", "latest=", "chance=", "increment=", "maxChance=", "help"])
+    opts, args = getopt.getopt(sys.argv[1:], "dw:t:e:l:c:i:m:L:h",["debug", "userTrigger", "wait=", "timeout=", "earliest=", "latest=", "chance=", "increment=", "maxChance=", "listLength=", "help"])
   except getopt.GetoptError:
     # Print usage and exit on unknown option
     exitWithMessage(usageText)
@@ -116,11 +131,12 @@ def parseArgs():
       latest = int(arg)
     elif opt in ("-c", "--chance"):
       initialPercentChance = int(arg)
-      percentChance = initialPercentChance
     elif opt in ("-i", "--increment"):
       percentChanceIncrement = int(arg)
     elif opt in ("-m", "--maxChance"):
       maxPercentChance = int(arg)
+    elif opt in ("-L", "--listLength"):
+      listLength = int(arg)
     elif opt in ("-h", "--help"):
       exitWithMessage(usageText)
 
@@ -142,11 +158,21 @@ def setupGPIO():
 # Initialise the program
 # ------------------------------------------------------------------------------
 def init():
-  # We want to use the global debugMode
+  # Use globals
   global debugMode
+  global percentChance
+  global initialPercentChance
+  global listLength
+  global recentlyPlayedSounds
 
   # Parse the command line arguments to the program
   parseArgs()
+
+  # Initialise the percentage chance
+  percentChance = initialPercentChance
+
+  # Initialise the queue
+  recentlyPlayedSounds = CheckableQueue(maxsize=listLength)
 
   # Initialise root logger
   lvl = logging.INFO
@@ -192,10 +218,25 @@ def startFile(theFileName):
 # Start playing a random song
 # ------------------------------------------------------------------------------
 def startRandomFile():
+  # Use globals
+  global recentlyPlayedSounds
+  global listLength
+
   # Build a list of ogg files in this directory
   fileNames = glob.glob("*.ogg")
   # Choose a random file from this list
   fileName = random.choice(fileNames)
+
+  # Make sure this sound hasn't played recently
+  if len(fileNames) >= listLength:
+    while (fileName in recentlyPlayedSounds):
+      fileName = random.choice(fileNames)
+
+  # Add this sound to the list
+  if recentlyPlayedSounds.full():
+    recentlyPlayedSounds.get()
+  recentlyPlayedSounds.put(fileName)
+
   startFile(fileName)
 
 # ==============================================================================
