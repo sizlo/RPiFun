@@ -5,6 +5,7 @@
 # Imports
 # ------------------------------------------------------------------------------
 from pygame import mixer
+import pygame
 import time
 import sys
 import getopt
@@ -211,8 +212,13 @@ def cleanup():
 # ------------------------------------------------------------------------------
 def startFile(theFileName):
   logging.info("Playing %s", theFileName)
-  mixer.music.load(theFileName)
-  mixer.music.play()
+
+  # Make sure we catch any errors from pygame
+  try:
+    mixer.music.load(theFileName)
+    mixer.music.play()
+  except pygame.error as e:
+    logging.error("Error playing file %s: %s" % (theFileName, pygame.get_error()))
 
 # ==============================================================================
 # Start playing a random song
