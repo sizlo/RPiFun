@@ -20,7 +20,10 @@ def index(request):
   if request.method == 'POST':
     # The toggle sound button was clicked, edit the config file
     soundDisabled = not soundDisabled
-    config.set("misc", "sounddisabled", soundDisabled ? "true" : "false")
+    if soundDisabled:
+      config.set("misc", "sounddisabled", "true")
+    else:
+      config.set("misc", "sounddisabled", "false")
     with open(configFilePath, "wb") as configfile:
       config.write(configfile)
 
