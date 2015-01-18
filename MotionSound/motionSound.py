@@ -1,352 +1,212 @@
-# Uses a motion sensor on the GPIO and plays a random ogg file from a selection
-# when active
+# Uses a motion sensor to trigger sound files
 
 # ==============================================================================
 # Imports
 # ------------------------------------------------------------------------------
-from pygame import mixer
-import pygame
-import time
+import motionSensor
+import soundPlayer
+import logging
 import sys
 import getopt
-import logging
-import random
 import glob
+import random
+import ConfigParser
 import datetime
-import Queue
-
-try:
-    import RPi.GPIO as GPIO
-except RuntimeError:
-    print("Error importing GPIO. Are you running under sudo?")
+import time
 
 # ==============================================================================
-# Classes
+# Globals
 # ------------------------------------------------------------------------------
-class CheckableQueue(Queue.Queue):
-    def __contains__(self, item):
-        with self.mutex:
-            return item in self.queue
+gDebugMode = False
+gLogName = "motionSound"
+gLogFile = "motionSound.log"
+gConfigFile = "motionSound.cfg"
+gLogger = logging.getLogger(gLogName)
 
 # ==============================================================================
-# Global variables
-# ------------------------------------------------------------------------------
-debugMode = False
-userTriggerMode = False
-secondsToWaitAfterSound = 5
-inputChannel = 7
-timeout = 15
-earliest = 10
-latest = 24
-initialPercentChance = 20
-percentChance = initialPercentChance
-percentChanceIncrement = 5
-maxPercentChance = 100
-listLength = 5
-recentlyPlayedSounds = CheckableQueue()
-usageText = """Usage: """ + sys.argv[0] + """ [-d|--debug] [--userTrigger] [-w|--wait seconds] [-t|--timeout seconds] [-e|--earliest hour] [-l|--latest hour] [-c|--chance percent] [-i|--increment percent] [-m|--maxChance percent] [-L|--listLength length] [-h|--help]
-
-OPTIONS
-\t-d --debug
-\t\tRun in debug mode (show more detailed output)
-
-\t--userTrigger
-\t\tTake user input as the trigger instead of the motion sensor
-
-\t-w --wait seconds
-\t\tThe number of seconds to wait after each sound plays
-
-\t-t --timeout seconds
-\t\tThe number of seconds to cut off a sound after
-
-\t-e --earliest hours
-\t\tThe earliest hour the program is allowed to play sound in 24hr format
-\t\tE.g """ + sys.argv[0] + """ -e 14
-\t\tWill not allow sounds to be played before 2pm
-
-\t-l --latest hourse
-\t\tThe latest hour the program is allowed to play sound in 24hr format
-\t\tE.g """ + sys.argv[0] + """ -e 14
-\t\tWill not allow sounds to be played after 2pm
-
-\t-c --chance percent
-\t\tThe initial percentage chance that a sound will play when motion is detected
-
-\t-i --increment percent
-\t\tThe percentage to increment the chance to play by
-
-\t-m --maxChance percent
-\t\tThe maximum that the chance to play can get to
-
-\t-L --listLength length
-\t\tThe size of the list of songs that were played recently so shouldn't be played again
-
-\t-h --help
-\t\tShow this message"""
-
-# ==============================================================================
-# Exit the program with a message
-# ------------------------------------------------------------------------------
-def exitWithMessage(msg):
-  print msg
-  sys.exit(0)
-
-# ==============================================================================
-# Parse command line arguments
+# parseArgs
+# Parse the command line arguments
 # ------------------------------------------------------------------------------
 def parseArgs():
-  # Use globals
-  global debugMode
-  global userTriggerMode
-  global secondsToWaitAfterSound
-  global usageText
-  global timeout
-  global earliest
-  global latest
-  global initialPercentChance
-  global percentChance
-  global percentChanceIncrement
-  global maxPercentChance
-  global listLength
+  global gDebugMode
 
   try:
     # Get the list of options provided, and there args
-    opts, args = getopt.getopt(sys.argv[1:], "dw:t:e:l:c:i:m:L:h",["debug", "userTrigger", "wait=", "timeout=", "earliest=", "latest=", "chance=", "increment=", "maxChance=", "listLength=", "help"])
-  except getopt.GetoptError:
-    # Print usage and exit on unknown option
-    exitWithMessage(usageText)
+    opts, args = getopt.getopt(sys.argv[1:], "d",["debug"])
+  except getopt.GetoptError as e:
+    print("Error parsing args: %s" % (e))
+    sys.exit(0)
 
   # Loop through and react to each option
   for opt, arg in opts:
     if opt in ("-d", "--debug"):
-      debugMode = True
-    elif opt in ("--userTrigger"):
-      userTriggerMode = True
-    elif opt in ("-w", "--wait"):
-      secondsToWaitAfterSound = float(arg)
-    elif opt in ("-t", "--timeout"):
-      timeout = int(arg)
-    elif opt in ("-e", "--earliest"):
-      earliest = int(arg)
-    elif opt in ("-l", "--latest"):
-      latest = int(arg)
-    elif opt in ("-c", "--chance"):
-      initialPercentChance = int(arg)
-    elif opt in ("-i", "--increment"):
-      percentChanceIncrement = int(arg)
-    elif opt in ("-m", "--maxChance"):
-      maxPercentChance = int(arg)
-    elif opt in ("-L", "--listLength"):
-      listLength = int(arg)
-    elif opt in ("-h", "--help"):
-      exitWithMessage(usageText)
+      gDebugMode = True
+
+
 
 # ==============================================================================
-# Setup the GPIO
-# ------------------------------------------------------------------------------
-def setupGPIO():
-  # Use globals
-  global inputChannel
-
-  # Set the pin numbering mode
-  GPIO.setmode(GPIO.BOARD)
-
-  # Setuo the channels
-  GPIO.setup(inputChannel, GPIO.IN, pull_up_down=GPIO.PUD_DOWN)
-  logging.debug("Channel %d set to input", inputChannel)
-
-# ==============================================================================
-# Initialise the program
+# init
+# Initialise self and all sub systems
 # ------------------------------------------------------------------------------
 def init():
-  # Use globals
-  global debugMode
-  global percentChance
-  global initialPercentChance
-  global listLength
-  global recentlyPlayedSounds
+  global gLogger
 
-  # Parse the command line arguments to the program
   parseArgs()
 
-  # Initialise the percentage chance
-  percentChance = initialPercentChance
-
-  # Initialise the queue
-  recentlyPlayedSounds = CheckableQueue(maxsize=listLength)
-
-  # Initialise root logger
+  # Initialise console logger
+  consoleHandle = logging.StreamHandler()
   lvl = logging.INFO
-  if debugMode:
+  if gDebugMode:
     lvl = logging.DEBUG
   formatString = "%(levelname)-8s %(asctime)s %(funcName)s:%(lineno)s: %(message)s"
   formatter = logging.Formatter(formatString)
-  logging.basicConfig(level=lvl, format=formatString)
-
-  # Initialise the file logging
-  fileHandle = logging.FileHandler("motionSound.log")
-  fileHandle.setLevel(logging.INFO)
-  fileHandle.setFormatter(formatter)
-  logging.getLogger().addHandler(fileHandle)
-
-  logging.debug("Initialising")
-
-  # Initialise GPIO
-  setupGPIO()
-
-  # Initialise the mixer
-  mixer.init()
-
-# ==============================================================================
-# Clean up the program
-# ------------------------------------------------------------------------------
-def cleanup():
-  logging.debug("Cleaning up")
-
-  # Cleanup GPIO
-  GPIO.cleanup()
+  consoleHandle.setLevel(lvl)
+  consoleHandle.setFormatter(formatter)
+  gLogger.setLevel(lvl)
+  gLogger.addHandler(consoleHandle)
   
 
-# ==============================================================================
-# Start playing a sound file
-# ------------------------------------------------------------------------------
-def startFile(theFileName):
-  logging.info("Playing %s", theFileName)
+  # Initialise the file logging
+  fileHandle = logging.FileHandler(gLogFile)
+  fileHandle.setLevel(logging.INFO)
+  fileHandle.setFormatter(formatter)
+  gLogger.addHandler(fileHandle)
 
-  # Make sure we catch any errors from pygame
-  try:
-    mixer.music.load(theFileName)
-    mixer.music.play()
-  except pygame.error as e:
-    logging.error("Error playing file %s: %s" % (theFileName, pygame.get_error()))
+  gLogger.debug("Initialising")
+
+  config = readConfig()
+  inputChannel = config.getint("gpio", "inputpin")
+
+  motionSensor.init(inputPin=inputChannel, logName=gLogName)
+  soundPlayer.init(logName=gLogName)
 
 # ==============================================================================
-# Start playing a random song
+# cleanup
+# Perform any necessary cleanup before exitting
 # ------------------------------------------------------------------------------
-def startRandomFile():
-  # Use globals
-  global recentlyPlayedSounds
+def cleanup():
+  gLogger.debug("Cleaning up")
+  motionSensor.cleanup()
+
+# ==============================================================================
+# readConfig
+# Read the config file
+# ------------------------------------------------------------------------------
+def readConfig():
+  config = ConfigParser.RawConfigParser()
+  config.read(gConfigFile)
+  return config
+
+# ==============================================================================
+# writeConfig
+# Write a given config to the file
+# ------------------------------------------------------------------------------
+def writeConfig(config):
+  with open(gConfigFile, "wb") as configfile:
+    config.write(configfile)
+
+# ==============================================================================
+# playRandomFile
+# Choose a random file from our directory and play it
+# ------------------------------------------------------------------------------
+def playRandomFile():
+  config = readConfig()
 
   # Build a list of ogg files in this directory
-  fileNames = glob.glob("*.ogg")
+  filenames = glob.glob("*.ogg")
   # Choose a random file from this list
-  fileName = random.choice(fileNames)
+  gLogger.debug("Choosing random file")
+  filename = random.choice(filenames)
 
-  # Make sure this sound hasn't played recently
-  if len(fileNames) > recentlyPlayedSounds.qsize():
-    while (fileName in recentlyPlayedSounds):
-      fileName = random.choice(fileNames)
+  # Make sure this file isn't in the list of recently played files
+  recentlyPlayedStr = config.get("recentlyplayed", "list")
+  recentlyPlayed = recentlyPlayedStr.split("/")
+  if len(recentlyPlayed) < len(filenames):
+    while filename in recentlyPlayed:
+      gLogger.debug("%s has been played recently, choosing another file" % (filename))
+      filename = random.choice(filenames)
 
-  # Add this sound to the list
-  if recentlyPlayedSounds.full():
-    recentlyPlayedSounds.get()
-  recentlyPlayedSounds.put(fileName)
+  # Add this file to the list of recently played ones
+  recentlyPlayed.append(filename)
+  # Only keep up to a max number of recently played files
+  maxListLength = config.getint("recentlyplayed", "maxlistlength")
+  recentlyPlayed = recentlyPlayed[-maxListLength:]
 
-  startFile(fileName)
+  # Write the updated list back to the config file
+  recentlyPlayedStr = "/".join(recentlyPlayed)
+  config.set("recentlyplayed", "list", recentlyPlayedStr)
+  writeConfig(config)
 
-# ==============================================================================
-# Wait for the playing music to finish
-# ------------------------------------------------------------------------------
-def waitForCurrentFile():
-  # Use globals
-  global timeout
-
-  # Ensure we cut off playback after a timeout
-  startTime = time.time()
-  cutoffTime = startTime + timeout
-  while mixer.music.get_busy():
-    # Sleep for a second
-    time.sleep(1)
-    # If it's been 15s stop playback
-    currentTime = time.time()
-    if currentTime > cutoffTime:
-      mixer.music.stop()
-      logging.debug("Music cut off after %ds" % (timeout))
-  logging.debug("Music finished")
+  # Play this file
+  soundTimeout = config.getint("timeouts", "soundtimeout")
+  soundPlayer.play(filename, timeout=soundTimeout)
 
 # ==============================================================================
-# Wait for the motion sensor to trigger
+# shouldPlaySound
+# Decides whether a file should be played
 # ------------------------------------------------------------------------------
-def waitForTrigger():
-  # Use globals
-  global userTriggerMode
-  global inputChannel
+def shouldPlaySound():
+  shouldPlay = True
 
-  if userTriggerMode:
-    # In user trigger mode wait for user input
-    raw_input("Press enter to trigger")
-    logging.info("Triggered by user input")
-  else:
-    # Wait for the motion sensor GPIO to go high
-    logging.debug("Waiting for motion sensor")
-    # Add an event detect for the edge we want
-    GPIO.add_event_detect(inputChannel, GPIO.RISING)
-    # Wait for that event
-    while not GPIO.event_detected(inputChannel):
-      time.sleep(1)
-    logging.info("Motion detected")
-    # Remove the event detect
-    GPIO.remove_event_detect(inputChannel)
+  config = readConfig()
 
-# ==============================================================================
-# Decide whether we should pla a file or not
-# ------------------------------------------------------------------------------
-def shouldPlayFile():
-  # Use globals
-  global earliest
-  global latest
-  global initialPercentChance
-  global percentChance
-  global percentChanceIncrement
-  global maxPercentChance
-
-  # If it's outside the allowed time then don't play
-  currentTime = datetime.datetime.now()
-  if currentTime.hour < earliest:
-    logging.info("Too early to play sound")
+  # Sound can be completely disabled, if it is just exit the method here
+  if config.getboolean("misc", "sounddisabled"):
+    gLogger.info("Sound is disabled in the config file")
     return False
-  if currentTime.hour >= latest:
-    logging.info("Too late to play sound")
+
+  # Don't allow sound before or after certain times
+  # Exit the method if either of these checks fail
+  currentTime = datetime.datetime.now()
+  if currentTime.hour < config.getint("allowedtimes", "earliest"):
+    gLogger.info("Too early to play sound")
+    return False
+  if currentTime.hour >= config.getint("allowedtimes", "latest"):
+    gLogger.info("Too late to play sound")
     return False
 
   # Only play a sound a certain percentage of the time
+  currentChance = config.getint("chance", "current")
   generatedNum = random.randint(1, 100)
-  if generatedNum > percentChance:
-    logging.debug("Generated %d, must be %d or lower" % (generatedNum, percentChance))
+  if generatedNum > currentChance:
+    gLogger.debug("Generated %d, must be %d or lower" % (generatedNum, currentChance))
     # Increment the chance to play
-    percentChance = percentChance + percentChanceIncrement
-    percentChance = min(percentChance, maxPercentChance)
-    logging.info("Chance to play is now %d%%" % (percentChance))
-    return False
+    incr = config.getint("chance", "increment")
+    currentChance = currentChance + incr
+    maxChance = config.getint("chance", "max")
+    currentChance = min(currentChance, maxChance)
+    gLogger.info("Chance to play is now %d%%" % (currentChance))
+    shouldPlay =  False
+  else:
+    # Reset the chance to play
+    initial = config.getint("chance", "initial")
+    currentChance = initial
 
-  # Reset the chance to play since we're going to play now
-  percentChance = initialPercentChance
+  # Write the new current chance to config
+  config.set("chance", "current", currentChance)
 
-  return True
+  writeConfig(config)
+
+  return shouldPlay
 
 # ==============================================================================
-# Program entry / main
+# main
 # ------------------------------------------------------------------------------
-def main():
-  # Use globals
-  global secondsToWaitAfterSound
-
+if __name__ == "__main__":
   init()
 
+  # Catch keyboard interrupts
   try:
     while True:
-      waitForTrigger()
-      if shouldPlayFile():
-        startRandomFile()
-        waitForCurrentFile()
-      # Wait to make sure we don't spam sound
-      if secondsToWaitAfterSound > 0:
-        logging.debug("Waiting %f seconds", secondsToWaitAfterSound)
-        time.sleep(secondsToWaitAfterSound)
+      motionSensor.waitForMotion()
+
+      if shouldPlaySound():
+        playRandomFile()
+
+        config = readConfig()
+        secondsToWait = config.getint("timeouts", "secondstowaitaftersound")
+        gLogger.debug("Waiting %d seconds" % (secondsToWait))
+        time.sleep(secondsToWait)
   except KeyboardInterrupt:
-    logging.debug("Keyboard interrup caught")
+    gLogger.debug("Keyboard interrupt caught")
     cleanup()
-
-
-
-main()
