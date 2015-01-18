@@ -15,7 +15,7 @@ def index(request):
     # The toggle sound button was clicked, edit the config file
     configFile = get_object_or_404(TextFile, name="config")
     config = ConfigParser.RawConfigParser()
-    config.read(configFile.filePath)
+    config.read(settings.BASE_DIR + "/" + configFile.filePath)
     soundDisabled = config.getboolean("misc", "sounddisabled")
     soundDisabled = not soundDisabled
     config.set("misc", "sounddisabled", soundDisabled)
