@@ -8,22 +8,30 @@ from motionSound.models import TextFile
 import subprocess
 import ConfigParser
 
+def strToBool(configStr):
+  states = {  '1': True, 'yes': True, 'true': True, 'on': True, 'True': True,
+              '0': False, 'no': False, 'false': False, 'off': False, 'False': False}
+  return states[configStr]
+
+def boolToStr(configBool):
+  if configBool:
+    return "true"
+  else
+    return "false"
+
 # Create your views here.
 def index(request):
   configFile = get_object_or_404(TextFile, name="config")
   configFilePath = settings.BASE_DIR + "/" + configFile.filePath
   config = ConfigParser.RawConfigParser()
   config.read(configFilePath)
-  soundDisabled = config.getboolean("misc", "sounddisabled")
+  soundDisabled = strToBool(config.get("misc", "sounddisabled"))
 
   # Handle POST
   if request.method == 'POST':
     # The toggle sound button was clicked, edit the config file
     soundDisabled = not soundDisabled
-    if soundDisabled:
-      config.set("misc", "sounddisabled", "true")
-    else:
-      config.set("misc", "sounddisabled", "false")
+    config.set("misc", "sounddisabled", boolToStr(soundDisabled))
     with open(configFilePath, "wb") as configfile:
       config.write(configfile)
 
