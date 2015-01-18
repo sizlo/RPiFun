@@ -42,7 +42,7 @@ def index(request):
 
   # Check if sound is disabled in the config
   soundEnabled = "Yes"
-  if soundDisabled:
+  if soundDisabled == True:
     soundEnabled = "No"
 
   context = { 'logText': logText, 
