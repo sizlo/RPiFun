@@ -42,7 +42,7 @@ def index(request):
   # Check if sound is disabled in the config
   soundEnabled = "Yes"
   config = ConfigParser.RawConfigParser()
-  config.read(configFile.filePath)
+  config.read(settings.BASE_DIR + "/" + configFile.filePath)
   if config.getboolean("misc", "sounddisabled"):
     soundEnabled = "No"
 
