@@ -7,5 +7,7 @@ urlpatterns = patterns('',
   # /motionSound/log/
   url(r'^log/$', views.log, name="log"),
   # /motionSoun/config/
-  url(r'^config/$', views.config, name="config")
+  url(r'^config/$', views.config, name="config"),
+  # /motionSound/upload
+  url(r'^upload/$', views.upload, name="upload")
 )

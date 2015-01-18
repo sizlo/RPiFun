@@ -1,0 +1,7 @@
+<h1>Upload a Sound</h1>
+<p>Sound will be converted to .ogg</p>
+<form name="uploadForm" enctype="multipart/form-data" action="{% url 'motionSound:upload' %}" method="post">
+  {% csrf_token %}
+  {{ form }}
+  <input type="submit" value="Submit" />
+</form>

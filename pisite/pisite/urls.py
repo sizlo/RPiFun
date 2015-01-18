@@ -16,5 +16,5 @@ urlpatterns = patterns('',
     # Home page
     url(r'^$', views.index, name="home"),
     # Sound upload page
-    url(r'^uploadSound$', views.uploadSound, name="uploadSound")
+    #url(r'^uploadSound$', views.uploadSound, name="uploadSound")
 )
