@@ -18,6 +18,7 @@ import time
 # Globals
 # ------------------------------------------------------------------------------
 gDebugMode = False
+gUserTrigger = False
 gLogName = "motionSound"
 gLogFile = "motionSound.log"
 gConfigFile = "motionSound.cfg"
@@ -29,10 +30,11 @@ gLogger = logging.getLogger(gLogName)
 # ------------------------------------------------------------------------------
 def parseArgs():
   global gDebugMode
+  global gUserTrigger
 
   try:
     # Get the list of options provided, and there args
-    opts, args = getopt.getopt(sys.argv[1:], "d",["debug"])
+    opts, args = getopt.getopt(sys.argv[1:], "du",["debug", "userTrigger"])
   except getopt.GetoptError as e:
     print("Error parsing args: %s" % (e))
     sys.exit(0)
@@ -41,8 +43,8 @@ def parseArgs():
   for opt, arg in opts:
     if opt in ("-d", "--debug"):
       gDebugMode = True
-
-
+    elif opt in ("-u", "--userTrigger"):
+      gUserTrigger = True
 
 # ==============================================================================
 # init
@@ -76,6 +78,8 @@ def init():
 
   config = readConfig()
   inputChannel = config.getint("gpio", "inputpin")
+  if gUserTrigger:
+    inputChannel = -1
 
   motionSensor.init(inputPin=inputChannel, logName=gLogName)
   soundPlayer.init(logName=gLogName)

@@ -35,7 +35,7 @@ def init(inputPin=-1, logName=""):
   gLogger = logging.getLogger(logName)
 
   # If no input pin was supplied activate user trigger mode
-  if inputPin == -1:
+  if inputPin < 0:
     gUserTrigger = True
 
   # If we're not in user trigger mode set up the pins
