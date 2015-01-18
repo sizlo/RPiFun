@@ -16,7 +16,7 @@ def strToBool(configStr):
 def boolToStr(configBool):
   if configBool:
     return "true"
-  else
+  else:
     return "false"
 
 # Create your views here.
