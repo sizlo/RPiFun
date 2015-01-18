@@ -1,5 +1,6 @@
 from django.shortcuts import render, get_object_or_404
 from django.http import HttpResponse
+from django.conf import settings
 
 from logs.forms import LineCountForm
 from motionSound.models import TextFile
@@ -18,7 +19,7 @@ def index(request):
     soundDisabled = config.getboolean("misc", "sounddisabled")
     soundDisabled = not soundDisabled
     config.set("misc", "sounddisabled", soundDisabled)
-    with open(configFile.filePath, "wb") as configfile:
+    with open(settings.BASE_DIR + "/" + configFile.filePath, "wb") as configfile:
       config.write(configfile)
 
   log = get_object_or_404(TextFile, name="log")
