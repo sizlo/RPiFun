@@ -14,5 +14,7 @@ Sound enabled: {{ soundEnabled }}</p>
   <input type="submit" value="Toggle Sound" />
 </form>
 
+<p><a href="{% url 'motionSound:upload' %}">Upload a sound</a>
+
 {% load staticfiles %}
 <script src="{% static 'motionSound/scrollTextAreas.js' %}"></script>
