@@ -1,0 +1,18 @@
+<h1><a href="{% url 'motionSound:log' %}">Log</a></h1>
+<textarea class="scrolled" readonly cols="100" rows="10">{{ logText }}</textarea>
+
+<h1><a href="{% url 'motionSound:config' %}">Current Config</a></h1>
+<textarea readonly cols="100" rows="10">{{ configText }}</textarea>
+
+<h1>Status</h1>
+<p>Running: {{ running }}<br>
+Sound enabled: {{ soundEnabled }}</p>
+
+
+<form action="{% url 'motionSound:index' %}" method="post">
+  {% csrf_token %}
+  <input type="submit" value="Toggle Sound" />
+</form>
+
+{% load staticfiles %}
+<script src="{% static 'motionSound/scrollTextAreas.js' %}"></script>

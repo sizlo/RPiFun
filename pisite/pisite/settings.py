@@ -38,6 +38,7 @@ INSTALLED_APPS = (
     'django.contrib.staticfiles',
     'logs',
     'home',
+    'motionSound',
 )
 
 MIDDLEWARE_CLASSES = (

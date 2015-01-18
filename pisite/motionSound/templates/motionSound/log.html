@@ -1,11 +1,11 @@
-<h1>Log file for {{ logName }}</h1>
+<h1>Log file for motionSound</h1>
 <textarea class="scrolled" readonly cols="100" rows="25">{{ logText }}</textarea>
 
-<form name="lineCount" action="{% url 'logs:individualLog' logName %}" method="post">
+<form name="lineCount" action="{% url 'motionSound:log' %}" method="post">
   {% csrf_token %}
   {{ form }}
   <input type="submit" value="Submit" />
 </form>
 
 {% load staticfiles %}
-<script src="{% static 'logs/scrollTextAreas.js' %}"></script>
+<script src="{% static 'motionSound/scrollTextAreas.js' %}"></script>
