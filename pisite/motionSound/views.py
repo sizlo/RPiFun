@@ -14,11 +14,11 @@ def index(request):
   configFilePath = settings.BASE_DIR + "/" + configFile.filePath
   config = ConfigParser.RawConfigParser()
   config.read(configFilePath)
+  soundDisabled = config.getboolean("misc", "sounddisabled")
 
   # Handle POST
   if request.method == 'POST':
     # The toggle sound button was clicked, edit the config file
-    soundDisabled = config.getboolean("misc", "sounddisabled")
     soundDisabled = not soundDisabled
     config.set("misc", "sounddisabled", soundDisabled)
     with open(configFilePath, "wb") as configfile:
@@ -42,7 +42,7 @@ def index(request):
 
   # Check if sound is disabled in the config
   soundEnabled = "Yes"
-  if config.getboolean("misc", "sounddisabled"):
+  if soundDisabled:
     soundEnabled = "No"
 
   context = { 'logText': logText, 
